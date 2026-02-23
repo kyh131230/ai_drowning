@@ -9,10 +9,10 @@ import supervision as sv
 # ==========================================
 # 1. 설정 및 상수 정의
 # ==========================================
-MODEL_PATH = "yolo26m_openvino_model_1280/"
+MODEL_PATH = "yolo26s_openvino_model/"
 CONF_THRESHOLD = 0.25
 SKIP_FRAMES = 3
-IMG_SIZE = 1280
+IMG_SIZE = 640
 
 
 # ---- 슬라이딩 풀 전용 파라미터 ----
