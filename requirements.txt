@@ -52,3 +52,4 @@ typing_extensions==4.15.0
 ultralytics==8.4.8
 ultralytics-thop==2.0.18
 urllib3==2.6.3
+PyQt5==5.15.10

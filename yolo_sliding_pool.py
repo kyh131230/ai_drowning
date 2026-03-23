@@ -609,6 +609,14 @@ def run_sliding_pool_system(source_path):
     frame_h, frame_w = first_frame.shape[:2]
     frame_shape = (frame_h, frame_w)
 
+    # ---- 영상 저장 설정 ----
+    output_filename = f"output_{int(time.time())}.mp4"
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # 실제 처리는 SKIP_FRAMES마다 하지만, 저장 영상의 속도를 맞추기 위해 FPS 조정
+    save_fps = video_fps if is_rtsp else (video_fps / SKIP_FRAMES)
+    out_writer = cv2.VideoWriter(output_filename, fourcc, save_fps, (frame_w, frame_h))
+    print(f"  영상 저장 시작: {output_filename} (FPS: {save_fps:.1f})")
+
     # ---- 트래커 ----
     tracker = sv.ByteTrack(
         track_activation_threshold=0.2,
@@ -794,7 +802,10 @@ def run_sliding_pool_system(source_path):
                     cv2.putText(frame, warn_msg, (10, frame_h - 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
 
-        # ---- 6. ROI 영역 오버레이 ----
+        # ---- 6. 영상 파일 저장 ----
+        out_writer.write(frame)
+
+        # ---- 7. ROI 영역 오버레이 ----
         overlay = frame.copy()
 
         if roi_selector.pool_polygon is not None:
@@ -869,8 +880,11 @@ def run_sliding_pool_system(source_path):
         if cv2.waitKey(1) == 27:  # ESC
             break
 
+    if out_writer:
+        out_writer.release()
     cap.release()
     cv2.destroyAllWindows()
+    print(f"\n시스템이 종료되었습니다. 저장된 파일: {output_filename}")
 
 
 if __name__ == "__main__":
