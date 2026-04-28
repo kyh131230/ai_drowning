@@ -69,6 +69,8 @@ cam_roi_pool: dict = {}        # camera_id → np.array or None
 cam_roi_exits: dict = {}       # camera_id → list of np.array
 # 카메라별 스냅샷 (ROI 설정용)
 cam_snapshots: dict = {}
+# 카메라별 분석 일시정지 상태
+analysis_paused: dict = {}     # camera_id → bool
 
 # 공유 알림
 global_alert = {"active": False, "camera_name": "", "message": ""}
@@ -103,6 +105,7 @@ def _init_camera_instances(cam_id: str):
         cam_roi_pool[cam_id] = None
         cam_roi_exits[cam_id] = []
         cam_snapshots[cam_id] = None
+        analysis_paused[cam_id] = False
 
     # ROI 복원 (cameras.json에서)
     cam = get_camera(cameras_config, cam_id)
@@ -155,10 +158,27 @@ def process_loop(cam_id: str, cam_name: str):
 
         skip_counter += 1
         if skip_counter % (config.FRAME_SKIP + 1) != 0:
-            # 스킵 프레임에도 최신 프레임을 유지
             with frame_locks[cam_id]:
                 if current_frames[cam_id] is not None:
-                    pass  # 이전 annotated 프레임 유지
+                    pass
+            continue
+
+        # 분석 일시정지 상태면 영상만 표시 (YOLO 추론 안 함)
+        if analysis_paused.get(cam_id, False):
+            cv2.putText(frame, "PAUSED", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 200, 255), 2)
+            cam_snapshots[cam_id] = frame.copy()
+            with frame_locks[cam_id]:
+                current_frames[cam_id] = frame
+            fps_counter += 1
+            elapsed_fps = time.time() - fps_time
+            if elapsed_fps >= 1.0:
+                fps_displays[cam_id] = fps_counter / elapsed_fps
+                fps_counter = 0
+                fps_time = time.time()
+            elapsed = time.time() - t_start
+            wait_time = (1 / vm.fps) - elapsed
+            if wait_time > 0:
+                time.sleep(wait_time)
             continue
 
         # ── YOLO 추론 ──
@@ -563,8 +583,17 @@ async def clear_roi(cam_id: str):
 
 @app.post("/api/cameras/{cam_id}/alarm/reset")
 async def reset_alarm(cam_id: str):
+    """\uce74\uba54\ub77c\ubcc4 \uacbd\ubcf4 \ud574\uc81c + \ucd94\uc801 \ub370\uc774\ud130 \ucd08\uae30\ud654"""
     alert_manager.reset()
     active_alerts.get(cam_id, set()).clear()
+    # \ubaa8\ub2c8\ud130/\uace0\uc2a4\ud2b8/\ud2b8\ub798\ucee4 \ucd08\uae30\ud654
+    if cam_id in cam_monitors:
+        cam_monitors[cam_id].clear()
+    if cam_id in cam_ghost_trackers:
+        cam_ghost_trackers[cam_id] = GhostTracker()
+    if cam_id in cam_trackers:
+        cam_trackers[cam_id] = sv.ByteTrack(
+            track_activation_threshold=0.2, lost_track_buffer=30, frame_rate=30)
     if not any(active_alerts.values()):
         global_alert["active"] = False
         global_alert["camera_name"] = ""
@@ -574,13 +603,39 @@ async def reset_alarm(cam_id: str):
 
 @app.post("/api/alarm/reset/all")
 async def reset_all_alarms():
+    """\uc804\uccb4 \uacbd\ubcf4 \ud574\uc81c + \ubaa8\ub4e0 \uce74\uba54\ub77c \ucd94\uc801 \ub370\uc774\ud130 \ucd08\uae30\ud654"""
     alert_manager.reset()
-    for cam_id in list(active_alerts.keys()):
-        active_alerts.get(cam_id, set()).clear()
+    for cid in list(active_alerts.keys()):
+        active_alerts.get(cid, set()).clear()
+        if cid in cam_monitors:
+            cam_monitors[cid].clear()
+        if cid in cam_ghost_trackers:
+            cam_ghost_trackers[cid] = GhostTracker()
+        if cid in cam_trackers:
+            cam_trackers[cid] = sv.ByteTrack(
+                track_activation_threshold=0.2, lost_track_buffer=30, frame_rate=30)
     global_alert["active"] = False
     global_alert["camera_name"] = ""
     global_alert["message"] = ""
     return {"status": "ok"}
+
+
+@app.post("/api/cameras/{cam_id}/analysis/toggle")
+async def toggle_analysis(cam_id: str):
+    """\ubd84\uc11d \uc77c\uc2dc\uc815\uc9c0/\uc7ac\uac1c \ud1a0\uae00"""
+    current = analysis_paused.get(cam_id, False)
+    analysis_paused[cam_id] = not current
+    # \uc77c\uc2dc\uc815\uc9c0 \uc2dc \ucd94\uc801 \ub370\uc774\ud130\ub3c4 \ucd08\uae30\ud654
+    if analysis_paused[cam_id]:
+        if cam_id in cam_monitors:
+            cam_monitors[cam_id].clear()
+        if cam_id in cam_ghost_trackers:
+            cam_ghost_trackers[cam_id] = GhostTracker()
+        if cam_id in cam_trackers:
+            cam_trackers[cam_id] = sv.ByteTrack(
+                track_activation_threshold=0.2, lost_track_buffer=30, frame_rate=30)
+        active_alerts.get(cam_id, set()).clear()
+    return {"status": "ok", "paused": analysis_paused[cam_id]}
 
 
 # ── 설정 변경 ────────────────────────────────────
@@ -619,6 +674,7 @@ async def get_status():
             "processing": processing_flags.get(cid, False),
             "active_alerts": list(active_alerts.get(cid, set())),
             "has_roi": cam_roi_pool.get(cid) is not None,
+            "paused": analysis_paused.get(cid, False),
         })
     return {
         "cameras": camera_statuses,

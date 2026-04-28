@@ -98,9 +98,14 @@ function updateStatus(data) {
             alarmBtn.classList.toggle("hidden", !hasAlert);
 
             const roiStatus = cam.has_roi ? " | ROI ✅" : "";
+            const pauseStatus = cam.paused ? " | ⏸️ 정지" : "";
             infoText.textContent = cam.processing
-                ? `${cam.source_type.toUpperCase()} | ${cam.fps} FPS${roiStatus}`
+                ? `${cam.source_type.toUpperCase()} | ${cam.fps} FPS${roiStatus}${pauseStatus}`
                 : "영상 없음";
+
+            // 토글 버튼 상태 동기화
+            const toggleBtn = card.querySelector(".analysis-toggle-btn");
+            if (toggleBtn) updateToggleBtn(toggleBtn, cam.paused);
         });
     }
 
@@ -226,6 +231,28 @@ async function changeInputSize(select) {
     const data = await res.json();
     if (data.status === "ok") {
         console.log(`입력 크기 변경: ${data.input_size}`);
+    }
+}
+
+// ── 분석 일시정지 토글 ──────────────────────────
+async function toggleAnalysis(btn) {
+    const camId = btn.closest(".camera-card").dataset.camId;
+    const res = await fetch(`/api/cameras/${camId}/analysis/toggle`, { method: "POST" });
+    const data = await res.json();
+    if (data.status === "ok") {
+        updateToggleBtn(btn, data.paused);
+    }
+}
+
+function updateToggleBtn(btn, paused) {
+    if (paused) {
+        btn.textContent = "▶️ 분석 재개";
+        btn.classList.remove("btn-secondary");
+        btn.classList.add("btn-primary");
+    } else {
+        btn.textContent = "⏸️ 분석 정지";
+        btn.classList.remove("btn-primary");
+        btn.classList.add("btn-secondary");
     }
 }
 

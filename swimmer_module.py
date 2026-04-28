@@ -267,7 +267,7 @@ class GhostTracker:
         cy = (new_bbox[1] + new_bbox[3]) / 2
         
         diag = np.sqrt(frame_shape[0]**2 + frame_shape[1]**2)
-        dist_threshold = diag * 0.20  # 대각선의 약 20% 반경 허용 (기존 10%에서 확장, 물살에 휩쓸린 거리 커버)
+        dist_threshold = diag * 0.30  # 대각선의 약 30% 반경 허용 (미끄럼틀 착지 거리 커버)
         
         for tid, info in self.ghosts.items():
             gb = info["bbox"]
