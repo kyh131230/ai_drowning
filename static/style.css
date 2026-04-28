@@ -69,8 +69,13 @@ body {
 }
 
 @keyframes pulse-bg {
-    from { background: #ef4444; }
-    to { background: #b91c1c; }
+    from {
+        background: #ef4444;
+    }
+
+    to {
+        background: #b91c1c;
+    }
 }
 
 .hidden {
@@ -112,6 +117,7 @@ body {
     font-weight: 700;
     line-height: 1.3;
     background: linear-gradient(135deg, var(--accent), #818cf8);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -211,8 +217,13 @@ body {
 }
 
 @keyframes card-pulse {
-    from { box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
-    to { box-shadow: 0 0 24px rgba(239, 68, 68, 0.7); }
+    from {
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+
+    to {
+        box-shadow: 0 0 24px rgba(239, 68, 68, 0.7);
+    }
 }
 
 /* 카드 헤더 */
@@ -421,27 +432,55 @@ body {
     gap: 4px;
 }
 
-/* ── ROI 모달 ── */
+.w-full {
+    width: 100%;
+}
+
+.setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.setting-row label {
+    font-size: 0.75rem;
+    color: var(--text-2);
+}
+
+.setting-row select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    padding: 5px 8px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    width: 100%;
+}
+
+.setting-row select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* ── ROI 모달 (풀스크린) ── */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.95);
     z-index: 1000;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: stretch;
 }
 
 .modal-content {
     background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    width: 90vw;
-    max-width: 1200px;
-    max-height: 90vh;
+    width: 100vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -451,12 +490,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 6px 16px;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
 .modal-header h2 {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
 }
 
@@ -476,10 +516,11 @@ body {
 }
 
 .roi-guide {
-    padding: 12px 20px;
-    font-size: 0.85rem;
+    padding: 4px 16px;
+    font-size: 0.78rem;
     color: var(--text-2);
-    line-height: 1.5;
+    line-height: 1.3;
+    flex-shrink: 0;
 }
 
 .roi-guide strong {
@@ -491,22 +532,24 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 20px;
+    padding: 4px 8px;
     overflow: hidden;
+    min-height: 0;
 }
 
 #roi-canvas {
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: crosshair;
     max-width: 100%;
-    max-height: 60vh;
+    max-height: 100%;
 }
 
 .modal-controls {
     display: flex;
     gap: 10px;
-    padding: 16px 20px;
+    padding: 6px 16px;
     border-top: 1px solid var(--border);
     justify-content: flex-end;
+    flex-shrink: 0;
 }

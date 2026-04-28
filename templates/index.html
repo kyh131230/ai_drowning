@@ -32,6 +32,28 @@
                 </div>
             </div>
 
+            <!-- 경보 제어 -->
+            <div class="sidebar-section">
+                <h3>🚨 경보 제어</h3>
+                <button class="btn-danger w-full" onclick="resetAllAlarms()">⚠️ 모든 경보 해제</button>
+            </div>
+
+            <!-- 시스템 설정 -->
+            <div class="sidebar-section">
+                <h3>⚙️ 시스템 설정</h3>
+                <div class="setting-row">
+                    <label>추론 입력 크기</label>
+                    <select id="input-size-select" onchange="changeInputSize(this)">
+                        <option value="320">320 (최고속)</option>
+                        <option value="416">416</option>
+                        <option value="480">480</option>
+                        <option value="640" selected>640 (기본)</option>
+                        <option value="960">960</option>
+                        <option value="1280">1280 (최고정밀)</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- 최근 이벤트 로그 -->
             <div class="sidebar-section">
                 <h3>📋 최근 이벤트</h3>
@@ -77,12 +99,9 @@
                     <button class="btn-sm btn-primary" onclick="connectRTSP(this)">연결</button>
                 </div>
                 <div class="control-row">
-                    <select class="profile-select" onchange="changeProfile(this)">
-                        <option value="KIDS_POOL">유아 풀</option>
-                        <option value="LANE_POOL">레인 수영장</option>
-                    </select>
                     <span class="cam-info-text"></span>
-                    <button class="btn-sm btn-danger alarm-reset-btn hidden" onclick="resetAlarm(this)">🔕 알림 해제</button>
+                    <button class="btn-sm btn-danger alarm-reset-btn hidden" onclick="resetAlarm(this)">🔕 알림
+                        해제</button>
                 </div>
             </div>
         </div>

@@ -8,7 +8,7 @@ import sys
 MODEL_PATH = "yolo26m_openvino_model_1280/"
 CONF_THRESHOLD = 0.25
 PERSON_CLASS_ID = 0
-INPUT_SIZE = 1280
+INPUT_SIZE = 640
 
 # ── 영상 설정 ──────────────────────────────────────
 DEFAULT_SOURCE = 0

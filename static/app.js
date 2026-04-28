@@ -109,6 +109,14 @@ function updateStatus(data) {
                 : "영상 없음";
         });
     }
+
+    // 입력 크기 드롭다운 동기화
+    if (data.input_size) {
+        const sizeSelect = document.getElementById("input-size-select");
+        if (sizeSelect && sizeSelect.value !== String(data.input_size)) {
+            sizeSelect.value = String(data.input_size);
+        }
+    }
 }
 
 // ── 최근 이벤트 로드 ────────────────────────────
@@ -213,6 +221,20 @@ async function resetAllAlarms() {
     await fetch("/api/alarm/reset/all", { method: "POST" });
 }
 
+// ── 설정 변경 ───────────────────────────────────
+async function changeInputSize(select) {
+    const value = parseInt(select.value);
+    const res = await fetch("/api/settings/input_size", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value }),
+    });
+    const data = await res.json();
+    if (data.status === "ok") {
+        console.log(`입력 크기 변경: ${data.input_size}`);
+    }
+}
+
 
 // ═══════════════════════════════════════════════════
 //  ROI 설정 모달
@@ -271,16 +293,16 @@ async function openROISetup(btn) {
         modal.classList.remove("hidden");
         updateROIGuide();
 
-        // 캔버스 크기 조정
+        // 캔버스 크기 조정 (풀스크린 모달이므로 래퍼 실제 크기 사용)
         requestAnimationFrame(() => {
             const wrapper = document.querySelector(".roi-canvas-wrapper");
             const canvas = document.getElementById("roi-canvas");
-            const maxW = wrapper.clientWidth - 40;
-            const maxH = Math.min(window.innerHeight * 0.6, wrapper.clientHeight);
+            const maxW = wrapper.clientWidth - 16;
+            const maxH = wrapper.clientHeight - 8;
 
             const scaleW = maxW / img.width;
             const scaleH = maxH / img.height;
-            roiScale = Math.min(scaleW, scaleH, 1);
+            roiScale = Math.min(scaleW, scaleH); // 업스케일 허용
 
             canvas.width = Math.round(img.width * roiScale);
             canvas.height = Math.round(img.height * roiScale);

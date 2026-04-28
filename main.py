@@ -272,7 +272,7 @@ def process_loop(cam_id: str, cam_name: str):
 
             # 위험 알림
             if risk_level > 0 and (skip_counter % 30 == 0):
-                active_alerts[cam_id].add(track_id)
+                active_alerts[cam_id].add(int(track_id))
                 log_event(cam_name, f"ID:{track_id} {status} (위험도:{risk_score:.2f})")
                 global_alert["active"] = True
                 global_alert["camera_name"] = cam_name
@@ -573,6 +573,26 @@ async def reset_all_alarms():
     return {"status": "ok"}
 
 
+# ── 설정 변경 ────────────────────────────────────
+
+@app.get("/api/settings")
+async def get_settings():
+    return {
+        "input_size": config.INPUT_SIZE,
+        "conf_threshold": config.CONF_THRESHOLD,
+        "frame_skip": config.FRAME_SKIP,
+    }
+
+
+@app.put("/api/settings/input_size")
+async def set_input_size(value: int = Body(..., embed=True)):
+    allowed = [320, 416, 480, 640, 960, 1280]
+    if value not in allowed:
+        return {"status": "error", "message": f"허용 값: {allowed}"}
+    config.INPUT_SIZE = value
+    return {"status": "ok", "input_size": config.INPUT_SIZE}
+
+
 # ── 상태 조회 ────────────────────────────────────
 
 @app.get("/api/status")
@@ -595,6 +615,7 @@ async def get_status():
         "global_alert": global_alert,
         "alert": alert_manager.get_status(),
         "profiles": list(PROFILES.keys()),
+        "input_size": config.INPUT_SIZE,
     }
 
 
