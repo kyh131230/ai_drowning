@@ -236,10 +236,17 @@ def process_loop(cam_id: str, cam_name: str):
             if is_in_exit:
                 status = "SAFE_EXIT"
                 risk_level = 0
-                monitors[track_id].risk_score = 0.0
-                monitors[track_id].risk_history.clear()
-                monitors[track_id].update(xyxy, kp_xy, kp_conf)
-                monitors[track_id].state = status
+                m = monitors[track_id]
+                m.risk_score = 0.0
+                m.risk_history.clear()
+                m.center_history.clear()
+                m.ar_history.clear()
+                m.area_history.clear()
+                m.bbox_history.clear()
+                m.time_history.clear()
+                m.stationary_start_time = None
+                m.update(xyxy, kp_xy, kp_conf)
+                m.state = status
             else:
                 status, risk_level = monitors[track_id].update(xyxy, kp_xy, kp_conf)
 
@@ -270,14 +277,17 @@ def process_loop(cam_id: str, cam_name: str):
             cv2.putText(frame, label, (x1 + 2, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
             cv2.putText(frame, sub, (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
 
-            # 위험 알림
-            if risk_level > 0 and (skip_counter % 30 == 0):
+            # 위험 알림 (DANGER 레벨에서만 경보 발동)
+            if risk_level == 2 and (skip_counter % 30 == 0):
                 active_alerts[cam_id].add(int(track_id))
                 log_event(cam_name, f"ID:{track_id} {status} (위험도:{risk_score:.2f})")
                 global_alert["active"] = True
                 global_alert["camera_name"] = cam_name
                 global_alert["message"] = f"ID:{track_id} {status}"
                 alert_manager.trigger()
+            elif risk_level == 1 and (skip_counter % 30 == 0):
+                # WARNING은 로그만 남기고 소리/배너는 울리지 않음
+                log_event(cam_name, f"ID:{track_id} {status} (위험도:{risk_score:.2f})")
 
         # ── 소실 감지 (GhostTracker) ──
         disappeared = prev_track_ids - current_ids
