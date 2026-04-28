@@ -69,6 +69,19 @@ class SwimmerMonitor:
 
     def update(self, box_xyxy, kp_xy=None, kp_conf=None):
         now = time.time()
+        
+        # [버그 픽스] 추적이 1.5초 이상 끊겼다가 같은 ID로 다시 잡힌 경우,
+        # 떨어지기 전 상태(큰 박스)와 물에서 나온 상태(작은 박스)가 즉시 비교되어
+        # 침수(Sinking)나 면적 감소(Area Decrease) 모델이 오작동(노란색 Warning)하는 현상 방지
+        if len(self.time_history) > 0 and (now - self.time_history[-1]) > 1.5:
+            self.center_history.clear()
+            self.ar_history.clear()
+            self.area_history.clear()
+            self.bbox_history.clear()
+            self.time_history.clear()
+            self.risk_history.clear()
+            self.stationary_start_time = None
+            
         self.last_seen = now
 
         x1, y1, x2, y2 = map(float, box_xyxy)
@@ -247,14 +260,37 @@ class GhostTracker:
         union = area_a + area_b - inter
         return inter / union if union > 0 else 0.0
 
-    def try_match_new_detection(self, new_bbox, iou_thresh=0.2):
-        best_tid, best_iou = None, 0.0
+    def try_match_new_detection(self, new_bbox, frame_shape=(720, 1280), iou_thresh=0.1):
+        best_tid, best_score = None, 0.0
+        
+        cx = (new_bbox[0] + new_bbox[2]) / 2
+        cy = (new_bbox[1] + new_bbox[3]) / 2
+        
+        diag = np.sqrt(frame_shape[0]**2 + frame_shape[1]**2)
+        dist_threshold = diag * 0.20  # 대각선의 약 20% 반경 허용 (기존 10%에서 확장, 물살에 휩쓸린 거리 커버)
+        
         for tid, info in self.ghosts.items():
-            score = self._iou(new_bbox, info["bbox"])
-            if score > best_iou:
-                best_iou = score
-                best_tid = tid
-        if best_tid is not None and best_iou >= iou_thresh:
+            gb = info["bbox"]
+            gx = (gb[0] + gb[2]) / 2
+            gy = (gb[1] + gb[3]) / 2
+            
+            # 1. IoU 우선 확인
+            score = self._iou(new_bbox, gb)
+            if score >= iou_thresh:
+                if score > best_score:
+                    best_score = score
+                    best_tid = tid
+                continue
+                
+            # 2. IoU가 낮을 경우 거리(Distance) 기반 폴백 매칭
+            dist = np.linalg.norm(np.array([cx, cy]) - np.array([gx, gy]))
+            if dist < dist_threshold:
+                d_score = 1.0 - (dist / dist_threshold)
+                if d_score > best_score:
+                    best_score = d_score
+                    best_tid = tid
+                    
+        if best_tid is not None:
             return best_tid, self.ghosts.pop(best_tid)
         return None, None
 
@@ -271,6 +307,8 @@ class GhostTracker:
                 info["alerted_danger"] = True
             elif elapsed > profile["disappear_warning_sec"]:
                 alerts.append({"track_id": tid, "bbox": info["bbox"], "elapsed": elapsed, "level": 1})
+            else:
+                alerts.append({"track_id": tid, "bbox": info["bbox"], "elapsed": elapsed, "level": 0})
         for tid in expired:
             del self.ghosts[tid]
         return alerts

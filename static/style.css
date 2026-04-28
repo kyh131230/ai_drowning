@@ -1,0 +1,512 @@
+/* ── 기본 리셋 및 변수 ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg-base: #0a0e17;
+    --bg-panel: #111827;
+    --bg-card: #1a2235;
+    --bg-hover: #243049;
+    --accent: #06b6d4;
+    --accent-dark: #0891b2;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #22c55e;
+    --text-1: #f1f5f9;
+    --text-2: #94a3b8;
+    --border: #1e3a5f;
+    --radius: 10px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-base);
+    color: var(--text-1);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── 전역 알림 배너 ── */
+.alert-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: var(--danger);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    animation: pulse-bg 1s ease-in-out infinite alternate;
+}
+
+.alert-banner button {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    padding: 4px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.alert-banner button:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+@keyframes pulse-bg {
+    from { background: #ef4444; }
+    to { background: #b91c1c; }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ── 레이아웃 ── */
+.layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ── 사이드바 ── */
+.sidebar {
+    width: 280px;
+    min-width: 240px;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px;
+    gap: 16px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-header .logo-icon {
+    font-size: 1.6rem;
+}
+
+.sidebar-header h1 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.3;
+    background: linear-gradient(135deg, var(--accent), #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.sidebar-section h3 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+    margin-bottom: 10px;
+}
+
+.add-camera-row {
+    display: flex;
+    gap: 6px;
+}
+
+.add-camera-row input {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    padding: 6px 10px;
+    font-size: 0.82rem;
+}
+
+.add-camera-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.event-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.event-list li {
+    background: var(--bg-card);
+    border-left: 3px solid var(--danger);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.76rem;
+    color: var(--text-2);
+}
+
+.event-list li strong {
+    color: var(--text-1);
+}
+
+.log-note {
+    font-size: 0.72rem;
+    color: var(--text-2);
+    margin-top: 8px;
+}
+
+.log-note code {
+    background: var(--bg-card);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--accent);
+}
+
+/* ── 메인 콘텐츠 ── */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+/* ── 카메라 그리드 ── */
+.camera-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 16px;
+    align-content: start;
+}
+
+/* ── 카메라 카드 ── */
+.camera-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.camera-card.alert {
+    border-color: var(--danger);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+    animation: card-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes card-pulse {
+    from { box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+    to { box-shadow: 0 0 24px rgba(239, 68, 68, 0.7); }
+}
+
+/* 카드 헤더 */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
+}
+
+.cam-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-2);
+    flex-shrink: 0;
+}
+
+.cam-status-dot.active {
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+}
+
+.cam-status-dot.alert {
+    background: var(--danger);
+    box-shadow: 0 0 6px var(--danger);
+}
+
+.cam-name-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-1);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: default;
+}
+
+.cam-name-input:focus {
+    outline: none;
+    border-bottom: 1px solid var(--accent);
+    cursor: text;
+}
+
+.btn-rename,
+.btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.btn-rename:hover {
+    background: var(--bg-card);
+}
+
+.btn-delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* 영상 영역 */
+.video-wrapper {
+    position: relative;
+    background: #000;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+}
+
+.video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.danger-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(239, 68, 68, 0.85);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 10px 22px;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* 카드 하단 컨트롤 */
+.card-controls {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rtsp-row input {
+    flex: 1;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}
+
+.rtsp-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.profile-select {
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    padding: 4px 8px;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.profile-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.cam-info-text {
+    flex: 1;
+    font-size: 0.75rem;
+    color: var(--text-2);
+}
+
+/* ── 버튼 공통 ── */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-accent,
+.btn-sm {
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--accent-dark);
+}
+
+.btn-secondary {
+    background: var(--bg-hover);
+    color: var(--text-1);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--border);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #b91c1c;
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, #06b6d4, #818cf8);
+    color: #fff;
+    border: none;
+}
+
+.btn-accent:hover {
+    background: linear-gradient(135deg, #0891b2, #6366f1);
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 0.78rem;
+}
+
+.file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ── ROI 모달 ── */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 90vw;
+    max-width: 1200px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-2);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.modal-close-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-1);
+}
+
+.roi-guide {
+    padding: 12px 20px;
+    font-size: 0.85rem;
+    color: var(--text-2);
+    line-height: 1.5;
+}
+
+.roi-guide strong {
+    color: var(--accent);
+}
+
+.roi-canvas-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+    overflow: hidden;
+}
+
+#roi-canvas {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: crosshair;
+    max-width: 100%;
+    max-height: 60vh;
+}
+
+.modal-controls {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    justify-content: flex-end;
+}

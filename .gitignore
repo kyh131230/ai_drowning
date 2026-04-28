@@ -1,21 +1,37 @@
-# Python Bytecode
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
 
 # Video & Outputs
 *.mp4
 *.mkv
 *.avi
+*.mov
 output_*.mp4
 source/
+uploads/
 
-# AI Models (용량이 큰 경우 제외)
+# AI Models
 *.pt
+*.onnx
 *_openvino_model/
 *_openvino_model_*/
+*_ver*.py
+test*.py
+
+# Local config & Data
+cameras.json
+log/
+test_output.txt
+test_result.txt
+test_imports.py
 
 # IDE / Editor
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db

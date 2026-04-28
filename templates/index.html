@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 기반 익사 감지 시스템</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <!-- ── 전역 알림 배너 ── -->
+    <div id="global-alert-banner" class="alert-banner hidden">
+        <span id="alert-banner-text">⚠️ 위험 감지!</span>
+        <button onclick="resetAllAlarms()">전체 알림 해제</button>
+    </div>
+
+    <div class="layout">
+        <!-- ── 사이드바 ── -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="logo-icon">🏊</span>
+                <h1>AI 기반 익사<br>감지 시스템</h1>
+            </div>
+
+            <!-- 카메라 추가 -->
+            <div class="sidebar-section">
+                <h3>📹 카메라 관리</h3>
+                <div class="add-camera-row">
+                    <input id="new-camera-name" type="text" placeholder="카메라 이름 입력" />
+                    <button class="btn-primary" onclick="addCamera()">+ 추가</button>
+                </div>
+            </div>
+
+            <!-- 최근 이벤트 로그 -->
+            <div class="sidebar-section">
+                <h3>📋 최근 이벤트</h3>
+                <ul id="event-log-list" class="event-list"></ul>
+                <p class="log-note">전체 기록: <code>log/events.csv</code></p>
+            </div>
+        </aside>
+
+        <!-- ── 메인 그리드 ── -->
+        <main class="main-content">
+            <div id="camera-grid" class="camera-grid"></div>
+        </main>
+    </div>
+
+    <!-- ── 카메라 카드 템플릿 (JS에서 복제) ── -->
+    <template id="camera-card-template">
+        <div class="camera-card" data-cam-id="">
+            <div class="card-header">
+                <span class="cam-status-dot"></span>
+                <input class="cam-name-input" type="text" value="" />
+                <button class="btn-rename" onclick="renameCamera(this)">✏️</button>
+                <button class="btn-delete" onclick="deleteCamera(this)">🗑️</button>
+            </div>
+
+            <!-- 영상 피드 -->
+            <div class="video-wrapper">
+                <img class="video-feed" src="" alt="영상 없음" />
+                <div class="danger-overlay hidden">⚠️ 위험 감지</div>
+            </div>
+
+            <!-- 소스 설정 -->
+            <div class="card-controls">
+                <div class="control-row">
+                    <button class="btn-sm btn-secondary" onclick="connectWebcam(this)">📷 웹캠</button>
+                    <label class="btn-sm btn-secondary file-label">
+                        📂 영상 업로드
+                        <input type="file" accept="video/*" class="file-input" onchange="uploadVideo(this)" hidden />
+                    </label>
+                    <button class="btn-sm btn-accent" onclick="openROISetup(this)">🎯 ROI</button>
+                </div>
+                <div class="control-row rtsp-row">
+                    <input class="rtsp-input" type="text" placeholder="rtsp://..." />
+                    <button class="btn-sm btn-primary" onclick="connectRTSP(this)">연결</button>
+                </div>
+                <div class="control-row">
+                    <select class="profile-select" onchange="changeProfile(this)">
+                        <option value="KIDS_POOL">유아 풀</option>
+                        <option value="LANE_POOL">레인 수영장</option>
+                    </select>
+                    <span class="cam-info-text"></span>
+                    <button class="btn-sm btn-danger alarm-reset-btn hidden" onclick="resetAlarm(this)">🔕 알림 해제</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ── ROI 설정 모달 ── -->
+    <div id="roi-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎯 ROI 구역 설정</h2>
+                <button class="modal-close-btn" onclick="closeROIModal()">✕</button>
+            </div>
+            <p id="roi-guide" class="roi-guide">
+                <strong>[감지 구역 설정]</strong> 영상을 클릭하여 물 영역(감지 구역)의 테두리를 그리세요.
+                <br>- 왼쪽 클릭: 점 추가 &nbsp; - 우클릭: 그리기 완료
+            </p>
+            <div class="roi-canvas-wrapper">
+                <canvas id="roi-canvas"></canvas>
+            </div>
+            <div class="modal-controls">
+                <button class="btn-secondary" onclick="finishCurrentPolygon()">현재 구역 완료</button>
+                <button class="btn-secondary" onclick="resetROI()">초기화</button>
+                <button class="btn-primary" onclick="saveROI()">💾 저장 및 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
