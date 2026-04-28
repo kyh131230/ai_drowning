@@ -53,12 +53,6 @@ function renderGrid(cams) {
                 card.querySelector(".rtsp-input").value = cam.source_path;
             }
 
-            // 프로필 복원
-            const profileSelect = card.querySelector(".profile-select");
-            if (cam.profile) {
-                profileSelect.value = cam.profile;
-            }
-
             grid.appendChild(clone);
         }
     });
