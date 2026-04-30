@@ -18,7 +18,7 @@ def _default_camera(name: str = "새 카메라") -> dict:
         "source_type": "none",
         "source_path": None,
         "profile": "KIDS_POOL",
-        "pool_polygon": None,
+        "pool_polygons": [],   # 복수 풀 구역 지원
         "exit_polygons": [],
     }
 

@@ -6,7 +6,7 @@ import sys
 
 # ── 모델 설정 ──────────────────────────────────────
 MODEL_PATH = "yolo26m_openvino_model_1280/"
-CONF_THRESHOLD = 0.25
+CONF_THRESHOLD = 0.40
 PERSON_CLASS_ID = 0
 INPUT_SIZE = 640
 

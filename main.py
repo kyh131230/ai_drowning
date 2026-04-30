@@ -65,7 +65,7 @@ cam_trackers: dict = {}
 # 카메라별 알림 상태
 active_alerts: dict = {}       # camera_id → set of alerted track IDs
 # 카메라별 ROI (numpy polygon)
-cam_roi_pool: dict = {}        # camera_id → np.array or None
+cam_roi_pool: dict = {}        # camera_id → list of np.array (복수 풀 구역)
 cam_roi_exits: dict = {}       # camera_id → list of np.array
 # 카메라별 스냅샷 (ROI 설정용)
 cam_snapshots: dict = {}
@@ -102,7 +102,7 @@ def _init_camera_instances(cam_id: str):
             frame_rate=30,
         )
         active_alerts[cam_id] = set()
-        cam_roi_pool[cam_id] = None
+        cam_roi_pool[cam_id] = []       # 빈 리스트 = ROI 미설정
         cam_roi_exits[cam_id] = []
         cam_snapshots[cam_id] = None
         analysis_paused[cam_id] = False
@@ -110,8 +110,10 @@ def _init_camera_instances(cam_id: str):
     # ROI 복원 (cameras.json에서)
     cam = get_camera(cameras_config, cam_id)
     if cam:
-        if cam.get("pool_polygon"):
-            cam_roi_pool[cam_id] = np.array(cam["pool_polygon"], dtype=np.int32)
+        if cam.get("pool_polygons"):    # 새 형식 (복수)
+            cam_roi_pool[cam_id] = [np.array(p, dtype=np.int32) for p in cam["pool_polygons"]]
+        elif cam.get("pool_polygon"):   # 구형식 호환
+            cam_roi_pool[cam_id] = [np.array(cam["pool_polygon"], dtype=np.int32)]
         if cam.get("exit_polygons"):
             cam_roi_exits[cam_id] = [np.array(ep, dtype=np.int32) for ep in cam["exit_polygons"]]
 
@@ -212,7 +214,7 @@ def process_loop(cam_id: str, cam_name: str):
         current_ids = set()
 
         # ── 상태 업데이트 & 시각화 ──
-        pool_poly = cam_roi_pool.get(cam_id)
+        pool_polys = cam_roi_pool.get(cam_id, [])
         exit_polys = cam_roi_exits.get(cam_id, [])
 
         for xyxy, mask, confidence, class_id, track_id, data in detections:
@@ -227,8 +229,11 @@ def process_loop(cam_id: str, cam_name: str):
             is_in_pool = True
             is_in_exit = False
 
-            if pool_poly is not None and len(pool_poly) > 0:
-                is_in_pool = (cv2.pointPolygonTest(pool_poly, center, False) >= 0)
+            if pool_polys:  # 풀 구역이 하나라도 설정된 경우
+                is_in_pool = any(
+                    len(poly) > 0 and cv2.pointPolygonTest(poly, center, False) >= 0
+                    for poly in pool_polys
+                )
 
             for ep in exit_polys:
                 if len(ep) > 0 and cv2.pointPolygonTest(ep, center, False) >= 0:
@@ -355,9 +360,10 @@ def process_loop(cam_id: str, cam_name: str):
         info_txt = f"Detect: {len(current_ids)} | Ghost: {len(ghost_tracker.ghosts)}"
         cv2.putText(frame, info_txt, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-        # ROI 외곽선 그리기
-        if pool_poly is not None and len(pool_poly) > 0:
-            cv2.polylines(frame, [pool_poly], True, (255, 150, 0), 2)
+        # ROI 외곽선 그리기 (복수 풀 구역)
+        for poly in pool_polys:
+            if len(poly) > 0:
+                cv2.polylines(frame, [poly], True, (255, 150, 0), 2)
         for ep in exit_polys:
             if len(ep) > 0:
                 cv2.polylines(frame, [ep], True, (100, 255, 0), 2)
@@ -551,26 +557,24 @@ async def get_roi(cam_id: str):
     cam = get_camera(cameras_config, cam_id)
     if not cam:
         return {"status": "not_found"}
+    # 구형식(pool_polygon) 하위 호환
+    pool_polygons = cam.get("pool_polygons")
+    if pool_polygons is None and cam.get("pool_polygon"):
+        pool_polygons = [cam.get("pool_polygon")]
     return {
-        "pool_polygon": cam.get("pool_polygon"),
+        "pool_polygons": pool_polygons or [],
         "exit_polygons": cam.get("exit_polygons", []),
     }
 
 
 @app.post("/api/cameras/{cam_id}/roi")
-async def set_roi(cam_id: str, pool_polygon: list = Body(None), exit_polygons: list = Body([])):
-    """ROI 설정 저장"""
-    # cameras.json에 저장
+async def set_roi(cam_id: str, pool_polygons: list = Body([]), exit_polygons: list = Body([])):
+    """ROI 설정 저장 (복수 풀 구역 지원)"""
     update_camera(cameras_config, cam_id,
-                  pool_polygon=pool_polygon,
+                  pool_polygons=pool_polygons,
                   exit_polygons=exit_polygons)
 
-    # 런타임 상태 업데이트
-    if pool_polygon and len(pool_polygon) > 0:
-        cam_roi_pool[cam_id] = np.array(pool_polygon, dtype=np.int32)
-    else:
-        cam_roi_pool[cam_id] = None
-
+    cam_roi_pool[cam_id] = [np.array(p, dtype=np.int32) for p in pool_polygons if p]
     cam_roi_exits[cam_id] = [np.array(ep, dtype=np.int32) for ep in exit_polygons if ep]
 
     return {"status": "ok", "message": "ROI 설정 저장됨"}
@@ -579,8 +583,8 @@ async def set_roi(cam_id: str, pool_polygon: list = Body(None), exit_polygons: l
 @app.delete("/api/cameras/{cam_id}/roi")
 async def clear_roi(cam_id: str):
     """ROI 설정 초기화"""
-    update_camera(cameras_config, cam_id, pool_polygon=None, exit_polygons=[])
-    cam_roi_pool[cam_id] = None
+    update_camera(cameras_config, cam_id, pool_polygons=[], exit_polygons=[])
+    cam_roi_pool[cam_id] = []
     cam_roi_exits[cam_id] = []
     return {"status": "ok"}
 
@@ -679,7 +683,7 @@ async def get_status():
             "fps": round(fps_displays.get(cid, 0), 1),
             "processing": processing_flags.get(cid, False),
             "active_alerts": list(active_alerts.get(cid, set())),
-            "has_roi": cam_roi_pool.get(cid) is not None,
+            "has_roi": bool(cam_roi_pool.get(cid)),  # 리스트가 비어있지 않으면 ROI 설정됨
             "paused": analysis_paused.get(cid, False),
         })
     return {

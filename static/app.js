@@ -6,7 +6,7 @@ let roiCamId = null;
 let roiImage = null;
 let roiMode = "POOL"; // "POOL" | "EXIT"
 let roiCurrentPoints = [];
-let roiPoolPolygon = [];
+let roiPoolPolygons = [];   // 복수 파란 구역 배열
 let roiExitPolygons = [];
 let roiScale = 1;
 let roiOffsetX = 0;
@@ -291,18 +291,18 @@ async function openROISetup(btn) {
     roiCamId = camId;
     roiMode = "POOL";
     roiCurrentPoints = [];
-    roiPoolPolygon = [];
+    roiPoolPolygons = [];
     roiExitPolygons = [];
 
     // 기존 ROI 로드
     try {
         const roiRes = await fetch(`/api/cameras/${camId}/roi`);
         const roiData = await roiRes.json();
-        if (roiData.pool_polygon) roiPoolPolygon = roiData.pool_polygon;
-        if (roiData.exit_polygons) roiExitPolygons = roiData.exit_polygons;
-        if (roiPoolPolygon.length > 0) {
-            roiMode = "EXIT";
+        if (roiData.pool_polygons && roiData.pool_polygons.length > 0) {
+            roiPoolPolygons = roiData.pool_polygons;
+            roiMode = "EXIT";  // 이미 설정된 경우 EXIT 모드로
         }
+        if (roiData.exit_polygons) roiExitPolygons = roiData.exit_polygons;
     } catch (e) { /* 무시 */ }
 
     // 스냅샷 가져오기
@@ -343,17 +343,24 @@ function drawROI() {
     const canvas = document.getElementById("roi-canvas");
     const ctx = canvas.getContext("2d");
 
-    // 배경 이미지
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (roiImage) {
         ctx.drawImage(roiImage, roiOffsetX, roiOffsetY,
             roiImage.width * roiScale, roiImage.height * roiScale);
     }
 
-    // 감지(풀) 영역 (파란색)
-    if (roiPoolPolygon.length > 0) {
-        drawPolygon(ctx, roiPoolPolygon, "rgba(0, 150, 255, 0.3)", "rgba(0, 150, 255, 0.9)", 2);
-    }
+    // 감지(풀) 영역들 (파란색 – 복수 가능)
+    roiPoolPolygons.forEach((poly, idx) => {
+        drawPolygon(ctx, poly, "rgba(0, 150, 255, 0.25)", "rgba(0, 150, 255, 0.9)", 2);
+        // 구역 번호 표시
+        if (poly.length > 0) {
+            const sx = poly[0][0] * roiScale + roiOffsetX;
+            const sy = poly[0][1] * roiScale + roiOffsetY;
+            ctx.fillStyle = "rgba(0,150,255,0.9)";
+            ctx.font = "bold 14px Inter";
+            ctx.fillText(`풀${idx + 1}`, sx + 4, sy + 16);
+        }
+    });
 
     // 안전 영역들 (초록색)
     roiExitPolygons.forEach(ep => {
@@ -374,7 +381,6 @@ function drawROI() {
         });
         ctx.stroke();
 
-        // 점 그리기
         ctx.fillStyle = color;
         roiCurrentPoints.forEach(pt => {
             const sx = pt[0] * roiScale + roiOffsetX;
@@ -410,9 +416,9 @@ function finishCurrentPolygon() {
     }
 
     if (roiMode === "POOL") {
-        roiPoolPolygon = [...roiCurrentPoints];
+        // 파란 구역은 여러 개 추가 가능 → 리스트에 저장 후 POOL 모드 유지
+        roiPoolPolygons.push([...roiCurrentPoints]);
         roiCurrentPoints = [];
-        roiMode = "EXIT";
     } else {
         roiExitPolygons.push([...roiCurrentPoints]);
         roiCurrentPoints = [];
@@ -422,19 +428,36 @@ function finishCurrentPolygon() {
     drawROI();
 }
 
+function switchToExitMode() {
+    if (roiCurrentPoints.length >= 3) {
+        // 그리던 중인 구역이 있으면 자동 완료
+        roiPoolPolygons.push([...roiCurrentPoints]);
+        roiCurrentPoints = [];
+    }
+    roiMode = "EXIT";
+    updateROIGuide();
+    drawROI();
+}
+
 function updateROIGuide() {
     const guide = document.getElementById("roi-guide");
+    const switchBtn = document.getElementById("switch-to-exit-btn");
+
     if (roiMode === "POOL") {
-        guide.innerHTML = '<strong>[감지 구역 설정]</strong> 영상을 클릭하여 물 영역(감지 구역)의 테두리를 그리세요.<br>- 왼쪽 클릭: 점 추가 &nbsp; - 우클릭: 그리기 완료';
-    } else if (roiExitPolygons.length === 0) {
-        guide.innerHTML = '<strong>[안전 구역 설정]</strong> <span style="color:#22c55e">안전 구역(탈출구, 계단 등)</span>을 그리세요. 완료 시 "구역 완료" 버튼을 누르거나 우클릭하세요.';
+        const count = roiPoolPolygons.length;
+        const countTxt = count > 0 ? ` (${count}개 완료)` : "";
+        guide.innerHTML = `<strong>[감지 구역 설정${countTxt}]</strong> 클릭하여 풀(수영장 물 영역)의 테두리를 그리세요.<br>• 좌클릭: 점 추가 &nbsp; • 우클릭: 구역 완료 &nbsp; • 구역이 여러 개면 반복 추가 가능`;
+        if (switchBtn) switchBtn.style.display = "";
     } else {
-        guide.innerHTML = '<strong>[설정 완료]</strong> 더 추가하려면 안전구역을 계속 그리거나 "저장 및 닫기"를 누르세요.';
+        const poolCnt = roiPoolPolygons.length;
+        const exitCnt = roiExitPolygons.length;
+        guide.innerHTML = `<strong>[안전 구역 설정]</strong> <span style="color:#22c55e">안전 구역(탈출구, 계단 등)</span>을 그리세요.<br>• 풀 구역 ${poolCnt}개 설정됨 • 안전 구역 ${exitCnt}개`;
+        if (switchBtn) switchBtn.style.display = "none";
     }
 }
 
 function resetROI() {
-    roiPoolPolygon = [];
+    roiPoolPolygons = [];
     roiExitPolygons = [];
     roiCurrentPoints = [];
     roiMode = "POOL";
@@ -451,7 +474,7 @@ async function saveROI() {
     }
 
     const body = {
-        pool_polygon: roiPoolPolygon.length > 0 ? roiPoolPolygon : null,
+        pool_polygons: roiPoolPolygons,
         exit_polygons: roiExitPolygons,
     };
 
