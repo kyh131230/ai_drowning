@@ -470,3 +470,58 @@ function closeROIModal() {
     roiImage = null;
     roiCurrentPoints = [];
 }
+
+// ═══════════════════════════════════════════════════
+//  풀스크린 뷰어 (더블클릭으로 카메라 확대)
+// ═══════════════════════════════════════════════════
+
+let fullscreenCamId = null;
+let fullscreenPollTimer = null;
+
+function openFullscreenViewer(videoWrapper) {
+    const card = videoWrapper.closest(".camera-card");
+    const camId = card.dataset.camId;
+    const camName = card.querySelector(".cam-name-input").value || "카메라";
+    const srcFeed = card.querySelector(".video-feed").src;
+    const hasAlert = card.classList.contains("alert");
+
+    fullscreenCamId = camId;
+
+    // 모달 요소 세팅
+    const modal = document.getElementById("fullscreen-modal");
+    const feedImg = document.getElementById("fullscreen-video-feed");
+    const overlay = document.getElementById("fullscreen-danger-overlay");
+    const nameEl = document.getElementById("fullscreen-cam-name");
+
+    nameEl.textContent = `📹 ${camName}`;
+    feedImg.src = srcFeed;
+    overlay.classList.toggle("hidden", !hasAlert);
+
+    modal.classList.remove("hidden");
+
+    // 폴링: 위험 상태 동기화 (1.5초마다)
+    fullscreenPollTimer = setInterval(() => {
+        const liveCard = document.querySelector(`.camera-card[data-cam-id="${camId}"]`);
+        if (liveCard) {
+            overlay.classList.toggle("hidden", !liveCard.classList.contains("alert"));
+        }
+    }, 1500);
+}
+
+function closeFullscreenViewer() {
+    document.getElementById("fullscreen-modal").classList.add("hidden");
+    document.getElementById("fullscreen-video-feed").src = "";
+    clearInterval(fullscreenPollTimer);
+    fullscreenPollTimer = null;
+    fullscreenCamId = null;
+}
+
+// ESC 키로 닫기
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        const modal = document.getElementById("fullscreen-modal");
+        if (!modal.classList.contains("hidden")) {
+            closeFullscreenViewer();
+        }
+    }
+});

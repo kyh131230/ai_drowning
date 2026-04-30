@@ -79,9 +79,10 @@
             </div>
 
             <!-- 영상 피드 -->
-            <div class="video-wrapper">
+            <div class="video-wrapper" ondblclick="openFullscreenViewer(this)">
                 <img class="video-feed" src="" alt="영상 없음" />
                 <div class="danger-overlay hidden">⚠️ 위험 감지</div>
+                <div class="fullscreen-hint">🔍 더블클릭으로 확대</div>
             </div>
 
             <!-- 소스 설정 -->
@@ -108,6 +109,23 @@
             </div>
         </div>
     </template>
+
+    <!-- ── 풀스크린 뷰어 모달 ── -->
+    <div id="fullscreen-modal" class="modal-overlay hidden" onclick="closeFullscreenViewer()">
+        <div class="fullscreen-modal-content" onclick="event.stopPropagation()">
+            <div class="fullscreen-modal-header">
+                <span id="fullscreen-cam-name">카메라</span>
+                <div class="fullscreen-header-right">
+                    <span class="fullscreen-hint-text">ESC 또는 배경 클릭으로 닫기</span>
+                    <button class="modal-close-btn" onclick="closeFullscreenViewer()">✕</button>
+                </div>
+            </div>
+            <div class="fullscreen-video-area">
+                <img id="fullscreen-video-feed" src="" alt="영상 없음" />
+                <div id="fullscreen-danger-overlay" class="danger-overlay hidden">⚠️ 위험 감지</div>
+            </div>
+        </div>
+    </div>
 
     <!-- ── ROI 설정 모달 ── -->
     <div id="roi-modal" class="modal-overlay hidden">
