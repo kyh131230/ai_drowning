@@ -238,6 +238,12 @@ def process_loop(cam_id: str, cam_name: str):
             if not is_in_pool and not is_in_exit:
                 continue
 
+            # ★ 초록(exit) 구역에 처음부터 있는 사람은 무시
+            #   풀(파란)에서 이동해온 사람(monitors에 이미 있는 ID)만 추적
+            if is_in_exit and not is_in_pool:
+                if track_id not in monitors:
+                    continue  # 풀 방문 이력 없는 사람 → 구조원/방문객으로 간주, 무시
+
             current_ids.add(track_id)
             ghost_tracker.mark_alive(track_id)
 
