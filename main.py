@@ -356,8 +356,19 @@ def process_loop(cam_id: str, cam_name: str):
             gtxt = f"LOST ID:{alert_info['track_id']} {elapsed:.1f}s"
             cv2.putText(frame, gtxt, (bx1, by1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, gc, 2)
 
-            if skip_counter % 30 == 0 and alert_info["level"] > 0:
-                log_event(cam_name, f"유령 소실 경고 ID:{alert_info['track_id']} ({elapsed:.1f}초)")
+            if skip_counter % 30 == 0:
+                if alert_info["level"] == 2:
+                    # 위험 → 경보 발동
+                    ghost_tid = int(alert_info["track_id"])
+                    active_alerts[cam_id].add(ghost_tid)
+                    log_event(cam_name, f"[유령 위험] LOST ID:{ghost_tid} ({elapsed:.1f}초) 익사 의심")
+                    global_alert["active"] = True
+                    global_alert["camera_name"] = cam_name
+                    global_alert["message"] = f"LOST ID:{ghost_tid} ({elapsed:.1f}s) 익사 의심"
+                    alert_manager.trigger()
+                elif alert_info["level"] == 1:
+                    # 경고 → 로그만
+                    log_event(cam_name, f"[유령 경고] LOST ID:{alert_info['track_id']} ({elapsed:.1f}초)")
 
         # 상단 정보
         info_txt = f"Detect: {len(current_ids)} | Ghost: {len(ghost_tracker.ghosts)}"
