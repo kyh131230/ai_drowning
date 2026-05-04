@@ -1,9 +1,9 @@
 {
   "KIDS_POOL": {
     "stationary_warning_sec": 3.0,
-    "stationary_danger_sec": 4.0,
+    "stationary_danger_sec": 7.0,
     "disappear_warning_sec": 3.0,
-    "disappear_danger_sec": 4.0
+    "disappear_danger_sec": 7.0
   },
   "LANE_POOL": {
     "stationary_warning_sec": 4.0,
