@@ -668,6 +668,45 @@ async def set_input_size(value: int = Body(..., embed=True)):
     return {"status": "ok", "input_size": config.INPUT_SIZE}
 
 
+# ── 경광등 COM 포트 설정 ─────────────────────────
+
+@app.get("/api/alert/ports")
+async def list_alert_ports():
+    """연결된 시리얼 포트 목록 (CH340 여부 포함)"""
+    from alert.alert_manager import list_serial_ports
+    return {"ports": list_serial_ports()}
+
+
+@app.put("/api/alert/port")
+async def set_alert_port(
+    com_port: str = Body(..., embed=True),
+    mock_mode: bool = Body(False, embed=True),
+):
+    """COM 포트 설정 및 재연결. 설정은 파일에 영구 저장됩니다."""
+    config.ALERT_COM_PORT = com_port
+    config.ALERT_MOCK_MODE = mock_mode
+    config.save_alert_settings()
+
+    if not mock_mode:
+        success = alert_manager.reconnect(com_port)
+        return {
+            "status": "ok" if success else "error",
+            "com_port": com_port,
+            "connected": success,
+            "mock_mode": mock_mode,
+        }
+    else:
+        alert_manager.mock_mode = True
+        return {"status": "ok", "com_port": com_port, "connected": False, "mock_mode": True}
+
+
+@app.post("/api/alert/test")
+async def test_alert_light(duration: float = Body(3.0, embed=True)):
+    """경광등을 duration초 동안 테스트 점등합니다."""
+    alert_manager.test_light(duration)
+    return {"status": "ok", "message": f"경광등 {duration}초 테스트 시작"}
+
+
 # ── 상태 조회 ────────────────────────────────────
 
 @app.get("/api/status")

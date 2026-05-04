@@ -639,3 +639,86 @@ body {
     object-fit: contain;
     display: block;
 }
+
+/* ── 경광등 설정 패널 ── */
+.alert-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    color: var(--text-2);
+}
+
+.alert-port-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+}
+
+.alert-port-badge.connected {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.alert-port-badge.disconnected {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.alert-port-badge.mock {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.alert-btn-row {
+    display: flex;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+.alert-btn-row button {
+    flex: 1;
+}
+
+/* btn-accent (초록 계열 강조 버튼) */
+.btn-accent {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-accent:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+}
+
+.btn-accent:active {
+    transform: translateY(0);
+}
+
+.btn-accent:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* 테스트 중 깜빡임 */
+@keyframes blink-test {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.btn-accent.testing {
+    animation: blink-test 0.6s ease-in-out infinite;
+}

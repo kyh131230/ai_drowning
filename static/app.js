@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadCameras();
     startPolling();
     setupROICanvas();
+    await loadAlertStatus();  // 경광등 상태 초기 로드
 });
 
 // ── 카메라 목록 로드 및 그리드 렌더링 ─────────
@@ -510,7 +511,6 @@ function openFullscreenViewer(videoWrapper) {
 
     fullscreenCamId = camId;
 
-    // 모달 요소 세팅
     const modal = document.getElementById("fullscreen-modal");
     const feedImg = document.getElementById("fullscreen-video-feed");
     const overlay = document.getElementById("fullscreen-danger-overlay");
@@ -522,7 +522,6 @@ function openFullscreenViewer(videoWrapper) {
 
     modal.classList.remove("hidden");
 
-    // 폴링: 위험 상태 동기화 (1.5초마다)
     fullscreenPollTimer = setInterval(() => {
         const liveCard = document.querySelector(`.camera-card[data-cam-id="${camId}"]`);
         if (liveCard) {
@@ -539,7 +538,6 @@ function closeFullscreenViewer() {
     fullscreenCamId = null;
 }
 
-// ESC 키로 닫기
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
         const modal = document.getElementById("fullscreen-modal");
@@ -548,3 +546,140 @@ document.addEventListener("keydown", (e) => {
         }
     }
 });
+
+// ═══════════════════════════════════════════════════
+//  경광등 COM 포트 설정
+// ═══════════════════════════════════════════════════
+
+async function loadAlertStatus() {
+    try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        if (data.alert) updateAlertPortUI(data.alert);
+    } catch (e) { /* 무시 */ }
+}
+
+function updateAlertPortUI(alertStatus) {
+    const badge = document.getElementById("alert-port-status");
+    const label = document.getElementById("alert-port-label");
+    if (!badge || !label) return;
+
+    const port = alertStatus.com_port || "--";
+    label.textContent = port;
+
+    badge.className = "alert-port-badge";
+    if (alertStatus.mock_mode) {
+        badge.classList.add("mock");
+        badge.textContent = "모의모드";
+    } else if (alertStatus.connected) {
+        badge.classList.add("connected");
+        badge.textContent = "연결됨";
+    } else {
+        badge.classList.add("disconnected");
+        badge.textContent = "미연결";
+    }
+
+    // 수동 입력칸에 현재 포트 예시 표시
+    const manualInput = document.getElementById("manual-port-input");
+    if (manualInput && port !== "--") manualInput.placeholder = port;
+}
+
+async function scanAlertPorts() {
+    const btn = document.getElementById("scan-ports-btn");
+    btn.textContent = "⏳ 탐색 중...";
+    btn.disabled = true;
+
+    try {
+        const res = await fetch("/api/alert/ports");
+        const data = await res.json();
+        const ports = data.ports || [];
+
+        const row = document.getElementById("port-select-row");
+        const sel = document.getElementById("port-select-dropdown");
+        sel.innerHTML = '<option value="">― 포트 선택 ―</option>';
+
+        if (ports.length === 0) {
+            alert("연결된 시리얼 포트를 찾지 못했습니다.");
+        } else {
+            ports.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.port;
+                opt.textContent = p.is_ch340
+                    ? `★ ${p.port}  [CH340 감지!]`
+                    : `${p.port}  ${p.description}`;
+                sel.appendChild(opt);
+            });
+
+            // CH340이 있으면 자동 선택
+            const ch340 = ports.find(p => p.is_ch340);
+            if (ch340) {
+                sel.value = ch340.port;
+                document.getElementById("manual-port-input").value = ch340.port;
+            }
+
+            row.style.display = "";
+
+            // 드롭다운 변경 시 수동 입력칸도 동기화
+            sel.onchange = () => {
+                if (sel.value) document.getElementById("manual-port-input").value = sel.value;
+            };
+        }
+    } catch (e) {
+        alert(`포트 탐색 오류: ${e.message}`);
+    } finally {
+        btn.textContent = "🔍 CH340 자동 탐색";
+        btn.disabled = false;
+    }
+}
+
+async function applyAlertPort(mockMode) {
+    const manualInput = document.getElementById("manual-port-input").value.trim();
+    const dropdownVal = document.getElementById("port-select-dropdown")?.value || "";
+    const port = manualInput || dropdownVal;
+
+    if (!port && !mockMode) {
+        alert("포트를 선택하거나 직접 입력해 주세요.");
+        return;
+    }
+
+    const res = await fetch("/api/alert/port", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ com_port: port || "MOCK", mock_mode: mockMode }),
+    });
+    const data = await res.json();
+
+    if (data.status === "ok") {
+        const msg = mockMode
+            ? "화면 모의 모드로 설정되었습니다."
+            : `${port} 연결 성공!`;
+        alert(msg);
+    } else {
+        alert(`연결 실패: ${port}\n\uc9c1접 입력한 포트를 확인해 주세요.`);
+    }
+    await loadAlertStatus();
+}
+
+async function testAlertLight() {
+    const btn = document.getElementById("alert-test-btn");
+    btn.disabled = true;
+    btn.classList.add("testing");
+    btn.textContent = "🔦 테스트 중... (3초)";
+
+    try {
+        await fetch("/api/alert/test", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ duration: 3.0 }),
+        });
+    } catch (e) {
+        alert(`테스트 실패: ${e.message}`);
+    }
+
+    // 3초 후 자동 복원
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.classList.remove("testing");
+        btn.textContent = "🔦 경광등 3초 테스트";
+    }, 3200);
+}
