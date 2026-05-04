@@ -14,6 +14,8 @@ env/
 output_*.mp4
 source/
 uploads/
+build/
+dist/
 
 # AI Models
 *.pt

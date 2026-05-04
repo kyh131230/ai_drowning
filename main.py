@@ -513,6 +513,7 @@ async def set_profile(cam_id: str, profile: str = Body(..., embed=True)):
 
 @app.post("/api/cameras/{cam_id}/source/webcam")
 async def set_webcam(cam_id: str):
+    _init_camera_instances(cam_id)
     _stop_camera(cam_id)
     if video_managers[cam_id].open_webcam(0):
         update_camera(cameras_config, cam_id, source_type="webcam", source_path=None)
@@ -523,6 +524,7 @@ async def set_webcam(cam_id: str):
 
 @app.post("/api/cameras/{cam_id}/source/upload")
 async def upload_video(cam_id: str, file: UploadFile = File(...)):
+    _init_camera_instances(cam_id)
     _stop_camera(cam_id)
     file_path = os.path.join(config.UPLOAD_DIR, file.filename)
     with open(file_path, "wb") as f:
@@ -537,6 +539,7 @@ async def upload_video(cam_id: str, file: UploadFile = File(...)):
 
 @app.post("/api/cameras/{cam_id}/source/rtsp")
 async def set_rtsp(cam_id: str, url: str = Form(...)):
+    _init_camera_instances(cam_id)
     _stop_camera(cam_id)
     if video_managers[cam_id].open_rtsp(url):
         update_camera(cameras_config, cam_id, source_type="rtsp", source_path=url)
