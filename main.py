@@ -37,7 +37,10 @@ from core.camera_manager import (
 )
 from core.event_logger import log_event, get_recent_events
 from alert.alert_manager import AlertManager
-from swimmer_module import PROFILES, SwimmerMonitor, GhostTracker, RISK_WARNING, RISK_DANGER
+from swimmer_module import (
+    PROFILES, SwimmerMonitor, GhostTracker, RISK_WARNING, RISK_DANGER,
+    get_profile_settings, save_profile_settings
+)
 
 # ── 디렉토리 생성 ────────────────────────────────
 os.makedirs(config.UPLOAD_DIR, exist_ok=True)
@@ -666,6 +669,39 @@ async def set_input_size(value: int = Body(..., embed=True)):
         return {"status": "error", "message": f"허용 값: {allowed}"}
     config.INPUT_SIZE = value
     return {"status": "ok", "input_size": config.INPUT_SIZE}
+
+
+@app.get("/api/profiles")
+async def get_profiles():
+    """프로필별 시간 설정 조회"""
+    return get_profile_settings()
+
+
+@app.put("/api/profiles/{profile_key}")
+async def update_profile(
+    profile_key: str,
+    stationary_warning_sec: float = Body(..., embed=True),
+    stationary_danger_sec: float = Body(..., embed=True),
+    disappear_warning_sec: float = Body(..., embed=True),
+    disappear_danger_sec: float = Body(..., embed=True),
+):
+    """프로필 시간 설정 변경 및 영구 저장"""
+    if profile_key not in PROFILES:
+        return {"status": "error", "message": f"프로필 없음: {profile_key}"}
+
+    # 유효성 검사 (경고 < 위험)
+    if stationary_warning_sec >= stationary_danger_sec:
+        return {"status": "error", "message": "정지 경고 시간은 위험 시간보다 짧아야 합니다."}
+    if disappear_warning_sec >= disappear_danger_sec:
+        return {"status": "error", "message": "사라짐 경고 시간은 위험 시간보다 짧아야 합니다."}
+
+    PROFILES[profile_key]["stationary_warning_sec"] = stationary_warning_sec
+    PROFILES[profile_key]["stationary_danger_sec"] = stationary_danger_sec
+    PROFILES[profile_key]["disappear_warning_sec"] = disappear_warning_sec
+    PROFILES[profile_key]["disappear_danger_sec"] = disappear_danger_sec
+
+    save_profile_settings()
+    return {"status": "ok", "profile": profile_key, "settings": get_profile_settings()[profile_key]}
 
 
 # ── 경광등 COM 포트 설정 ─────────────────────────

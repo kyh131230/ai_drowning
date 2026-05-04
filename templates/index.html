@@ -66,7 +66,7 @@
 
                 <!-- 자동 탐색 -->
                 <button class="btn-secondary w-full" onclick="scanAlertPorts()" id="scan-ports-btn">
-                    🔍 CH340 자동 탐색
+                    🔍 릴레이모듈 포트 자동 탐색
                 </button>
 
                 <!-- 포트 선택 드롭다운 -->
@@ -93,6 +93,71 @@
                 <button class="btn-accent w-full" onclick="testAlertLight()" id="alert-test-btn">
                     🔦 경광등 3초 테스트
                 </button>
+            </div>
+
+            <!-- 감지 시간 설정 -->
+            <div class="sidebar-section">
+                <h3>⏱️ 감지 시간 설정</h3>
+
+                <!-- 탭 전환 -->
+                <div class="profile-tabs">
+                    <button class="profile-tab active" id="tab-kids" onclick="switchProfileTab('KIDS_POOL')">
+                        🧒 유아 풀
+                    </button>
+                    <button class="profile-tab" id="tab-lane" onclick="switchProfileTab('LANE_POOL')">
+                        🏊 레인 수영장
+                    </button>
+                </div>
+
+                <!-- KIDS_POOL -->
+                <div id="profile-panel-KIDS_POOL" class="profile-panel">
+                    <div class="profile-row">
+                        <span class="profile-label">⚠️ 정지 경고</span>
+                        <input type="number" id="kids-stationary-warning" class="profile-input" min="1" max="30"
+                            step="0.5" value="3"> 초
+                    </div>
+                    <div class="profile-row">
+                        <span class="profile-label">🚨 정지 위험</span>
+                        <input type="number" id="kids-stationary-danger" class="profile-input" min="1" max="60"
+                            step="0.5" value="6"> 초
+                    </div>
+                    <div class="profile-row">
+                        <span class="profile-label">⚠️ 잠수 경고</span>
+                        <input type="number" id="kids-disappear-warning" class="profile-input" min="1" max="30"
+                            step="0.5" value="3"> 초
+                    </div>
+                    <div class="profile-row">
+                        <span class="profile-label">🚨 잠수 위험</span>
+                        <input type="number" id="kids-disappear-danger" class="profile-input" min="1" max="60"
+                            step="0.5" value="6"> 초
+                    </div>
+                    <button class="btn-primary w-full" onclick="saveProfileSettings('KIDS_POOL')">💾 저장</button>
+                </div>
+
+                <!-- LANE_POOL -->
+                <div id="profile-panel-LANE_POOL" class="profile-panel hidden">
+                    <div class="profile-row">
+                        <span class="profile-label">⚠️ 정지 경고</span>
+                        <input type="number" id="lane-stationary-warning" class="profile-input" min="1" max="30"
+                            step="0.5" value="4"> 초
+                    </div>
+                    <div class="profile-row">
+                        <span class="profile-label">🚨 정지 위험</span>
+                        <input type="number" id="lane-stationary-danger" class="profile-input" min="1" max="60"
+                            step="0.5" value="7"> 초
+                    </div>
+                    <div class="profile-row">
+                        <span class="profile-label">⚠️ 잠수 경고</span>
+                        <input type="number" id="lane-disappear-warning" class="profile-input" min="1" max="30"
+                            step="0.5" value="3"> 초
+                    </div>
+                    <div class="profile-row">
+                        <span class="profile-label">🚨 잠수 위험</span>
+                        <input type="number" id="lane-disappear-danger" class="profile-input" min="1" max="60"
+                            step="0.5" value="5"> 초
+                    </div>
+                    <button class="btn-primary w-full" onclick="saveProfileSettings('LANE_POOL')">💾 저장</button>
+                </div>
             </div>
 
             <!-- 최근 이벤트 로그 -->

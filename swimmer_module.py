@@ -45,6 +45,57 @@ RISK_WARNING = 0.45
 RISK_DANGER = 0.60
 GHOST_EXPIRE_SEC = 30.0
 
+# ── 프로필 영구 저장/로드 (profile_settings.json) ──────
+import os, json as _json
+
+_PROFILE_SETTINGS_FILE = os.path.join(os.getcwd(), "profile_settings.json")
+
+# 저장 가능한 시간 키 (UI에서 편집할 항목)
+_EDITABLE_KEYS = [
+    "stationary_warning_sec",
+    "stationary_danger_sec",
+    "disappear_warning_sec",
+    "disappear_danger_sec",
+]
+
+def save_profile_settings():
+    """현재 PROFILES의 시간 설정을 파일에 저장합니다."""
+    data = {}
+    for profile_key, profile in PROFILES.items():
+        data[profile_key] = {k: profile[k] for k in _EDITABLE_KEYS}
+    try:
+        with open(_PROFILE_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            _json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[프로필 저장 오류] {e}")
+
+def load_profile_settings():
+    """저장된 프로필 설정을 불러와 PROFILES에 적용합니다."""
+    if not os.path.exists(_PROFILE_SETTINGS_FILE):
+        return
+    try:
+        with open(_PROFILE_SETTINGS_FILE, "r", encoding="utf-8") as f:
+            data = _json.load(f)
+        for profile_key, values in data.items():
+            if profile_key in PROFILES:
+                for k in _EDITABLE_KEYS:
+                    if k in values:
+                        PROFILES[profile_key][k] = float(values[k])
+        print("[프로필 설정 로드 완료]")
+    except Exception as e:
+        print(f"[프로필 로드 오류] {e}")
+
+def get_profile_settings() -> dict:
+    """현재 PROFILES의 편집 가능한 값을 반환합니다."""
+    return {
+        profile_key: {k: profile[k] for k in _EDITABLE_KEYS}
+        for profile_key, profile in PROFILES.items()
+    }
+
+# 시작 시 저장된 설정 자동 로드
+load_profile_settings()
+
+
 
 # ==========================================
 # 2. 수영자 모니터

@@ -17,7 +17,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadCameras();
     startPolling();
     setupROICanvas();
-    await loadAlertStatus();  // 경광등 상태 초기 로드
+    await loadAlertStatus();    // 경광등 상태 초기 로드
+    await loadProfileSettings(); // 프로필 시간 설정 초기 로드
 });
 
 // ── 카메라 목록 로드 및 그리드 렌더링 ─────────
@@ -682,4 +683,77 @@ async function testAlertLight() {
         btn.classList.remove("testing");
         btn.textContent = "🔦 경광등 3초 테스트";
     }, 3200);
+}
+
+// ═══════════════════════════════════════════════════
+//  감지 시간 설정 (프로필별)
+// ═══════════════════════════════════════════════════
+
+const PROFILE_INPUT_MAP = {
+    "KIDS_POOL": {
+        stationary_warning_sec: "kids-stationary-warning",
+        stationary_danger_sec:  "kids-stationary-danger",
+        disappear_warning_sec:  "kids-disappear-warning",
+        disappear_danger_sec:   "kids-disappear-danger",
+    },
+    "LANE_POOL": {
+        stationary_warning_sec: "lane-stationary-warning",
+        stationary_danger_sec:  "lane-stationary-danger",
+        disappear_warning_sec:  "lane-disappear-warning",
+        disappear_danger_sec:   "lane-disappear-danger",
+    },
+};
+
+async function loadProfileSettings() {
+    try {
+        const res = await fetch("/api/profiles");
+        const data = await res.json();
+        for (const [profileKey, inputs] of Object.entries(PROFILE_INPUT_MAP)) {
+            const values = data[profileKey];
+            if (!values) continue;
+            for (const [field, inputId] of Object.entries(inputs)) {
+                const el = document.getElementById(inputId);
+                if (el && values[field] !== undefined) el.value = values[field];
+            }
+        }
+    } catch (e) {
+        console.warn("프로필 설정 로드 실패:", e);
+    }
+}
+
+function switchProfileTab(profileKey) {
+    // 탭 버튼 활성화 전환
+    document.getElementById("tab-kids").classList.toggle("active", profileKey === "KIDS_POOL");
+    document.getElementById("tab-lane").classList.toggle("active", profileKey === "LANE_POOL");
+
+    // 패널 표시 전환
+    document.getElementById("profile-panel-KIDS_POOL").classList.toggle("hidden", profileKey !== "KIDS_POOL");
+    document.getElementById("profile-panel-LANE_POOL").classList.toggle("hidden", profileKey !== "LANE_POOL");
+}
+
+async function saveProfileSettings(profileKey) {
+    const inputs = PROFILE_INPUT_MAP[profileKey];
+    const body = {};
+    for (const [field, inputId] of Object.entries(inputs)) {
+        const val = parseFloat(document.getElementById(inputId).value);
+        if (isNaN(val) || val <= 0) {
+            alert(`올바른 숫자를 입력해 주세요.`);
+            return;
+        }
+        body[field] = val;
+    }
+
+    const res = await fetch(`/api/profiles/${profileKey}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (data.status === "ok") {
+        const profileName = profileKey === "KIDS_POOL" ? "유아 풀" : "레인 수영장";
+        alert(`✅ ${profileName} 감지 시간 설정이 저장되었습니다.`);
+    } else {
+        alert(`❌ 저장 실패: ${data.message}`);
+    }
 }
